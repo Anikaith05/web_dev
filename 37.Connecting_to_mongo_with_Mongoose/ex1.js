@@ -107,16 +107,15 @@ app.get("/users/email/:email", async(req,res)=>{
 });
 
 //8.Find user by id
-app.get("/users/:id",async (req,res)=>{
-    try{
-        const user= await User.findById(req.params.id);
-        res.json(user);
-    }
-    catch(error){
-        res.status(400).json({error:error.message});
-    }
-});
-
+//app.get("/users/:id",async (req,res)=>{
+//     try{
+//         const user= await User.findById(req.params.id);
+//         res.json(user);
+//     }
+//     catch(error){
+//         res.status(400).json({error:error.message});
+//     }
+// });
 //9.query operators
 app.get("/user/adults",async (req,res)=>{
     try{
@@ -128,3 +127,69 @@ app.get("/user/adults",async (req,res)=>{
     }
 });
 
+app.get("/users/young", async(req,res)=>{
+    try{
+        const users=await User.find({age:{$lt:30}});
+        res.json(users);
+    }
+    catch(error){
+        res.status(400).json({error:error.message});
+    }
+});
+
+app.get("/users/admins",async (req,res)=>{
+    try{
+        const user=await User.find({role:{$in:["user","admin"]}});
+        res.json(user);
+    }
+    catch(error){
+        res.status(400).json({error:error.message});
+    }
+});
+
+
+app.get("/users/:id",async (req,res)=>{
+    try{
+        const user= await User.findById(req.params.id);
+        res.json(user);
+    }
+    catch(error){
+        res.status(400).json({error:error.message});
+    }
+});//you gotta always keep /:id in the end for the pattern recognition to not fail
+
+
+//10.Updating one user
+app.patch("/users/email/:email",async (req,res)=>{
+    try{
+        const user=await User.updateOne({email:req.params.email},{age:req.body.age},{runValidators:true});
+        res.json(user);
+    }
+    catch(error){
+        res.status(400).json({error:error.message});
+    }
+});
+
+//11.Update Many users
+app.patch("/users/deactivate",async (req,res)=>{
+    try{
+        const user=await User.updateMany({role:"user"},{$set:{role:"deactivated"}},{runValidators:true});
+        res.json(user);
+    }
+    catch(error){
+        res.status(400).json({error:error.message});
+    }
+});
+
+//12.find by id and update
+app.patch("/users/:id",async (req,res)=>{
+    try{
+        const user=await User.findByIdAndUpdate(req.params.id,{$set:{age:10}},{new:true,runValidators:true});
+        res.json(user);
+    }
+    catch(error){
+        res.json({error:error.message});
+    }
+});
+
+//13.Validation error handling
