@@ -18,7 +18,14 @@ const userSchema=new mongoose.Schema({
         required:true,
         trim:true,
         minlength:2,
-        maxlength:30
+        maxlength:30,
+        //14.Custom method
+        validate:{
+            validator: function(value){
+                    return '/^[a-zA-Z0-9]+$/'.test(value);
+                },
+            message:"Name should contain only numbers and alphabets!"
+        }
     },
     email:{
         type: String,
@@ -52,6 +59,29 @@ const userSchema=new mongoose.Schema({
     }
 });
 
+//18.virtual get
+userSchema.virtual("fullname").get(function(){
+    return this.firstname+" "+this.lastname;
+});
+
+//19.virtual set
+userSchema.virtual("fullname").set(function(value){
+    const names=value.split(" ");
+    this.firstname=names[0];
+    this.lastname=names[1];
+});
+
+userSchema.statics.findAdmins=function(){
+    return this.find({role:"admin"});
+}
+
+userSchema.methods.isAdult=function(){
+    return (this.age>=18);
+};
+
+userSchema.methods.getSummary=function(){
+    return `${this.name} is a ${this.age} old user`;
+};
 //3.create the model
 const User=new mongoose.model("User",userSchema);
 
@@ -193,3 +223,64 @@ app.patch("/users/:id",async (req,res)=>{
 });
 
 //13.Validation error handling
+app.post("/users",async (req,res)=>{
+    try{
+        const user=await User.create({
+            "email": "wrong@gmail.com",
+            "age": 10,
+            "password": "123"
+            });
+        res.json(user);
+    }
+    catch(err){
+        if(err.name==="ValidationError"){
+            const fieldsi={};
+            for(const field in err.errors){
+                fieldsi[field]=err.errors[field].message;
+            }
+            const final={error:"Validation failed",
+                fields:fieldsi
+            }
+            res.status(400).json(final);
+        }
+    }
+});
+
+//15.Instance method- isAdult()
+app.get("/users/:id/adult",async (req,res)=>{
+    try{
+        const user= await User.findById(req.params.id);
+        res.json({value:user.isAdult()});
+    }
+    catch(err){
+        res.status(400).json({error:err.message});
+    }
+});
+
+//16.Instance Method — getSummary()
+app.get("/users/:id/summary",async (req,res)=>{
+    try{
+        const user=await User.findById(req.params.id);
+        res.json({message:user.getSummary()});
+    }
+    catch(err){
+        res.status(400).json({error:err.message});
+    }
+});
+
+//17.Static Method — findAdmins()
+app.get("/admins",async (req,res)=>{
+    try{
+        const users=await User.findAdmins();
+        res.json(users);
+    }
+    catch(err){
+        res.status(400).json({error:err.message});
+    }
+});
+
+//20.
+
+
+
+
