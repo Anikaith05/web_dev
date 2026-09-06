@@ -1,309 +1,204 @@
-🧪 Express Middleware Practice — Mini Secret API
+# Express Middleware Practice Exercise
 
-Build a small Express server to practice the structure and syntax of Express middleware.
+A single small app that touches every middleware concept from **Section 40**:
+intro to middleware, Morgan, custom middleware, chaining middleware, a 404
+handler, a fake "auth" middleware, and protecting specific routes.
 
-The goal is to use middleware, route-specific middleware, Morgan, query parameters, next(), and a 404 handler without copying a solution.
+Build it in one file, `app.js`. Work through the parts in order — each one
+builds on the last.
 
-🎯 Objective
+---
 
-Create an Express server with these routes:
+## Setup
 
-GET  /
-GET  /about
-GET  /secret
-GET  /admin
-GET  /users
+```bash
+mkdir middleware-practice && cd middleware-practice
+npm init -y
+npm install express morgan
+```
 
-You will also need middleware for:
+Create `app.js`:
 
-Request logging
-Adding request time
-Password authentication
-Admin authentication
-Handling unknown routes
-1. Set Up Express
+```js
+const express = require("express");
+const morgan = require("morgan");
+const app = express();
+```
 
-Create a basic Express server.
+---
 
-You should:
+## Part 1 — Morgan (video 438)
 
-Import express
-Create an Express application
-Start the server on port 3000
-Print a message when the server starts
-2. Add Morgan Logger
+Add Morgan so every request gets logged to the console. Use the `"dev"`
+format string.
 
-Install and use Morgan.
+```js
+// TODO: app.use(...)
+```
 
-Your server should log every incoming request.
+Start the server (`app.listen(3000, () => console.log("on 3000"))`) and hit
+a couple routes with your browser or curl to confirm you see log lines like:
 
-For example:
+```
+GET / 200 3.212 ms - 12
+```
 
-GET /about 200
-GET /secret 200
-GET /random 404
+---
 
-Use Morgan's "dev" format.
+## Part 2 — Your first custom middleware (video 437 & 439)
 
-Goal
+Write a middleware function that logs the request method and path, then
+**calls `next()`**. Mount it with `app.use` so it runs for *every* request.
 
-Understand how:
+```js
+app.use((req, res, next) => {
+  // TODO: console.log something useful
+  // TODO: don't forget next()
+});
+```
 
-app.use(...)
+Then add two simple routes to test it against:
 
-can apply middleware to all incoming requests.
+```js
+app.get("/", (req, res) => {
+  res.send("home page");
+});
 
-3. Create Your Own Logger Middleware
+app.get("/cats", (req, res) => {
+  res.send("meow");
+});
+```
 
-Create a middleware function called:
+**Checkpoint:** visiting either route should print your custom log line
+*and* Morgan's log line, in that order.
 
-logger
+---
 
-It should print:
+## Part 3 — A middleware that adds data to `req` (video 439/440)
 
-A request was received!
+Write a middleware called `addTimestamp` that attaches the current time
+to `req.timestamp`, then a route that uses it.
 
-every time a request arrives.
+```js
+const addTimestamp = (req, res, next) => {
+  // TODO: req.timestamp = ...
+  next();
+};
 
-Requirements
+app.get("/time", addTimestamp, (req, res) => {
+  res.send(`Request received at: ${req.timestamp}`);
+});
+```
 
-Your middleware must:
+This shows middleware doesn't just log — it can **modify the request
+object** for routes further down the chain.
 
-Receive req
-Receive res
-Receive next
-Call next()
+---
 
-Think about:
+## Part 4 — Chaining multiple middleware on one route (video 440)
 
-What happens if you forget to call next()?
+Write two tiny middleware functions, `logA` and `logB`, and attach *both*
+to a single route, in order, using the array syntax:
 
-4. Create a Request-Time Middleware
+```js
+const logA = (req, res, next) => {
+  console.log("Middleware A");
+  next();
+};
 
-Create another middleware called:
+const logB = (req, res, next) => {
+  console.log("Middleware B");
+  next();
+};
 
-addTime
+app.get("/chain", [logA, logB], (req, res) => {
+  res.send("you hit the chained route");
+});
+```
 
-This middleware should add the current time to the request object.
+Confirm in your console that A logs before B, before the response is sent.
 
-For example:
+---
 
-req.requestTime
+## Part 5 — Fake password middleware (video 442, "NOT REAL AUTH")
 
-should contain the current date/time.
+Write a middleware named `verifyPassword` that checks `req.query.password`.
 
-Then /about should be able to access that value.
+- If it equals `"chickennuggets"` → call `next()`
+- Otherwise → respond with `res.status(401).send("Password required!")`
 
-Expected response:
+```js
+const verifyPassword = (req, res, next) => {
+  const { password } = req.query;
+  // TODO: check password, either next() or send 401
+};
+```
 
-About page
+Test it with:
+- `/secret` (no query) → should be blocked
+- `/secret?password=chickennuggets` → should pass
 
-Request received at: <current time>
-Goal
+---
 
-Practice adding your own properties to the req object inside middleware and accessing them later.
+## Part 6 — Protecting *specific* routes only (video 443)
 
-5. Create a Password Middleware
+Add two more routes, `/admin` and `/discount`, and apply `verifyPassword`
+**only** to those two — not to `/`, `/cats`, `/time`, or `/chain`.
 
-Create a middleware called:
+```js
+app.get("/admin", verifyPassword, (req, res) => {
+  res.send("welcome to the admin area");
+});
 
-checkPassword
+app.get("/discount", verifyPassword, (req, res) => {
+  res.send("here's your secret discount code: EXPRESS10");
+});
 
-The /secret route should require a password.
+app.get("/secret", verifyPassword, (req, res) => {
+  res.send("here is the secret");
+});
+```
 
-The password will be provided through the query string:
+**Checkpoint:** `/` and `/cats` still work with no password. `/admin`,
+`/discount`, and `/secret` all require `?password=chickennuggets`.
 
-/secret?password=1234
+---
 
-Choose your own password.
+## Part 7 — The 404 catch-all (video 441)
 
-Correct Password
+Add this as the **very last** `app.use` in the file — order matters, since
+Express matches top to bottom:
 
-Return:
+```js
+app.use((req, res) => {
+  res.status(404).send("Not Found");
+});
+```
 
-Access granted
-Incorrect Password
+Test it by visiting a route that doesn't exist, e.g. `/nothing-here`.
 
-Return:
+---
 
-Access denied
-Important
+## Final structure check
 
-The password middleware should apply only to /secret.
+Your middleware/route order in `app.js` should look like this top to bottom:
 
-You should practice the structure:
+1. `morgan("dev")`
+2. custom logger middleware (`app.use`)
+3. named routes (`/`, `/cats`, `/time`, `/chain`)
+4. protected routes using `verifyPassword` (`/secret`, `/admin`, `/discount`)
+5. the 404 catch-all `app.use`, **last**
 
-app.get()
-    ↓
-middleware
-    ↓
-route handler
+If the 404 handler isn't last, it'll swallow every route defined after it —
+a common bug this exercise is designed to surface.
 
-rather than applying the middleware globally.
+---
 
-6. Create an Admin Middleware
+## Stretch goals
 
-Create another middleware called:
-
-isAdmin
-
-The /admin route should check whether the user is an admin.
-
-Use a query parameter like:
-
-/admin?admin=true
-If Admin
-
-Return:
-
-Welcome Admin
-Otherwise
-
-Return:
-
-You are not an admin
-
-This middleware should apply only to /admin.
-
-7. Create the /users Route
-
-Create:
-
-GET /users
-
-It can simply return:
-
-List of users
-
-This route does not need authentication.
-
-8. Create a 404 Middleware
-
-If someone requests a route that doesn't exist:
-
-/random
-
-your server should return:
-
-404 - Page not found
-
-Create this using middleware.
-
-Important
-
-The 404 middleware should come after all your routes.
-
-Think carefully about why the order matters.
-
-🧩 Required Structure
-
-Your application should roughly follow this flow:
-
-Incoming Request
-       ↓
-Morgan Middleware
-       ↓
-Custom Logger Middleware
-       ↓
-Request-Time Middleware
-       ↓
-       ├── GET /
-       ├── GET /about
-       ├── GET /users
-       ├── GET /secret
-       │       ↓
-       │   checkPassword
-       │       ↓
-       │   Route Handler
-       │
-       └── GET /admin
-               ↓
-           isAdmin
-               ↓
-           Route Handler
-       ↓
-404 Middleware
-🧠 Concepts You Should Practice
-
-Make sure your implementation uses all of these.
-
-Express
-express()
-app.listen()
-app.get()
-app.use()
-Middleware
-req
-res
-next
-Custom middleware functions
-Global middleware
-Route-specific middleware
-Middleware ordering
-Request
-Query parameters
-Adding custom properties to req
-Response
-Sending responses with res
-Morgan
-Installing Morgan
-Using Morgan as middleware
-404 Handling
-404 middleware
-Placing the 404 middleware after your routes
-🧪 Things to Test
-
-Once you've finished, test all of these.
-
-Normal Route
-/
-Route Using Request Time
-/about
-Users
-/users
-Secret — Correct Password
-/secret?password=YOUR_PASSWORD
-Secret — Incorrect Password
-/secret?password=wrong
-Admin — Admin
-/admin?admin=true
-Admin — Not Admin
-/admin?admin=false
-Non-existent Route
-/random
-🔥 Challenge Questions
-
-After completing the exercise, answer these without looking at your code:
-
-What is the difference between app.use() and app.get()?
-Why does middleware need next()?
-What happens if middleware doesn't call next() and doesn't send a response?
-Why can we add something like req.requestTime?
-How do we access password from:
-/secret?password=1234
-Why is checkPassword placed between app.get() and the route handler?
-Why shouldn't checkPassword be registered globally?
-Why must the 404 middleware come after the routes?
-If you put the 404 middleware before /about, what would happen when /about is requested?
-What is the execution order when requesting:
-GET /secret?password=1234
-
-Trace the request from the moment it enters the server until the response is sent.
-
-🎯 Goal
-
-Don't worry about making the project complicated.
-
-The main goal is to become comfortable with this pattern:
-
-Request
-   ↓
-Middleware
-   ↓
-Middleware
-   ↓
-Route-Specific Middleware
-   ↓
-Route Handler
-   ↓
-Response
+- Make `verifyPassword` read the password from a header (`req.headers`)
+  instead of the query string.
+- Write a middleware that logs how long each request took, using
+  `Date.now()` before and after `next()`.
+- Combine `verifyPassword` with `addTimestamp` on one route, in either
+  order — notice how order changes what each middleware has access to.
