@@ -27,7 +27,7 @@ const app = express();
 
 ---
 
-## Part 1 — Morgan (video 438)
+## Part 1 — Morgan
 
 Add Morgan so every request gets logged to the console. Use the `"dev"`
 format string.
@@ -45,7 +45,7 @@ GET / 200 3.212 ms - 12
 
 ---
 
-## Part 2 — Your first custom middleware (video 437 & 439)
+## Part 2 — Your first custom middleware
 
 Write a middleware function that logs the request method and path, then
 **calls `next()`**. Mount it with `app.use` so it runs for *every* request.
@@ -74,7 +74,7 @@ app.get("/cats", (req, res) => {
 
 ---
 
-## Part 3 — A middleware that adds data to `req` (video 439/440)
+## Part 3 — A middleware that adds data to `req` 
 
 Write a middleware called `addTimestamp` that attaches the current time
 to `req.timestamp`, then a route that uses it.
@@ -95,7 +95,7 @@ object** for routes further down the chain.
 
 ---
 
-## Part 4 — Chaining multiple middleware on one route (video 440)
+## Part 4 — Chaining multiple middleware on one route 
 
 Write two tiny middleware functions, `logA` and `logB`, and attach *both*
 to a single route, in order, using the array syntax:
@@ -120,7 +120,7 @@ Confirm in your console that A logs before B, before the response is sent.
 
 ---
 
-## Part 5 — Fake password middleware (video 442, "NOT REAL AUTH")
+## Part 5 — Fake password middleware 
 
 Write a middleware named `verifyPassword` that checks `req.query.password`.
 
@@ -140,7 +140,7 @@ Test it with:
 
 ---
 
-## Part 6 — Protecting *specific* routes only (video 443)
+## Part 6 — Protecting *specific* routes only 
 
 Add two more routes, `/admin` and `/discount`, and apply `verifyPassword`
 **only** to those two — not to `/`, `/cats`, `/time`, or `/chain`.
@@ -164,7 +164,7 @@ app.get("/secret", verifyPassword, (req, res) => {
 
 ---
 
-## Part 7 — The 404 catch-all (video 441)
+## Part 7 — The 404 catch-all 
 
 Add this as the **very last** `app.use` in the file — order matters, since
 Express matches top to bottom:
